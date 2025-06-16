@@ -1,3 +1,6 @@
+#SPDX-FileCopyrightText: 2025 Matthias Panny <matthias.panny@mci.edu>
+#SPDX-License-Identifier: MIT
+
 """
 Python Code object that needs to be added to the main "Model" in Ansys Mechanical
 It requires the "Target Callback" setting to be "After Object Changed"
