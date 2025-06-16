@@ -1,7 +1,8 @@
 """
-Python Code object that needs to be added to the main "Model" in Mechanical
+Python Code object that needs to be added to the main "Model" in Ansys Mechanical
+It requires the "Target Callback" setting to be "After Object Changed"
 
-Tracks all changes to a Named Selection of a certain name (default: "measurePoints") and exports the coordinates of the nodes in this selection after every change
+Tracks all changes to a Named Selection of a certain name (default: "measurePoints") and exports the coordinates of the nodes in this selection after every change to a *.txt-file (default: "coordsMP.txt")
 """
 
 def after_object_changed(this, object_changed, property_name):
