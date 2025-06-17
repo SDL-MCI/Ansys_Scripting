@@ -1,0 +1,47 @@
+! **************************************************************
+! Write coordinates of named selection 'measurePoints' to a text
+! file 'coordsMP.dat' in the defined coordinate system 1000
+! 
+! (c)by FJ
+! **************************************************************
+
+/PREP7
+
+! select measurement points
+CMSEL, s, measurePoints
+
+! select coordinate frame:
+CSYS, 1000
+
+! get number of measurement points
+*GET, numN, node, , count
+*GET, nodeID, node, , num, min
+
+! get coordinates
+*DIM, coords, array, numN, 3  
+*DO, i, 1, numN
+    
+    ! get coordinates
+    coords(i,1) = nx(nodeID)
+    coords(i,2) = ny(nodeID)
+    coords(i,3) = nz(nodeID)
+    
+    ! get next node number
+    nodeID = ndnext(nodeID)
+*ENDDO
+
+! write to file
+*CFOPEN, coordsMP, dat
+*VWRITE, coords(1,1), coords(1,2), coords(1,3)
+(3F20.5)
+*CFCLOS
+
+! copy to file to folder 'user_files'
+*DIM, fname, string, 128
+fname(1) = strcat(_WB_USERFILES_DIR(1),'coordsMP')
+/copy,coordsMP, dat, , fname(1), dat
+
+! select full model
+ALLSEL
+
+/SOLU

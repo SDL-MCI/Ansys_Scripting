@@ -1,0 +1,218 @@
+! *****************************************************************************
+! Write normal vector to file 'normals.dat'. Coordinates are defined in file
+! 'coordsMP.dat' with respect to coordinate system 1000.
+! 
+! Remark: Works only with quadratic elements!!!
+!
+! (c)by FJ
+! *****************************************************************************
+
+! load last results
+SET, last
+
+! Select coordinate frame:
+CSYS, 1000
+
+! NORMAL VECTOR MATRIX
+*DIM, normVM, array, numMP, 3
+
+! ASSIGN VARIABLES
+*DIM, normV, array, 3
+*DIM, dx1, array, 3
+*DIM, dx2, array, 3
+*DIM, cornerN, array, 4
+*DIM, midN, array, 4
+*DIM, ELnodeNumbers, array, 8
+*DIM, normVE, array, 3
+
+*DIM, xCoord, array, 8
+*DIM, yCoord, array, 8
+*DIM, zCoord, array, 8
+*DIM, xiV, array, 8
+*DIM, etaV, array, 8
+*DIM, dNdxi, array, 8
+*DIM, dNdeta, array, 8
+
+! LOOOP OVER MEASUREMENT POINTS
+*DO, i, 1, numMP
+
+    ! SELECT ELEMENTS OF MEASUREMENT POINT
+    NSEL, s, node, , nodeNum(i,1)
+    ESLN, s
+    ESEL, r, ename, , shell281
+    
+    ! NUMBER OF ELEMENTS AND LOWEST ELEMENT NUMBER
+    *GET, numEL, element, , count
+    *GET, elID, element, , num, min
+    
+    normV(1) = 0, 0, 0
+    
+    ! LOOP OVER ELEMENTS
+    *DO, j, 1, numEL
+
+        ! CORNER NODES
+        *DO, k, 1, 4
+            *GET, cornerN(k), element, elID, node, k
+        *ENDDO
+        
+        ! TRIANGULAR ELEMENT
+        *IF, cornerN(3), eq, cornerN(4), then
+        
+            ! MIDSIDE NODES
+            *GET, midN(1), element, elID, node, 5
+            *GET, midN(2), element, elID, node, 6
+            *GET, midN(3), element, elID, node, 8
+            
+            ! ELEMENT NODES
+            ELnodeNumbers(1) = cornerN(1), cornerN(2), cornerN(3), midN(1), midN(2), midN(3)
+            
+            ! NODAL COORDINATES AND CURRENT NODE
+            currN = 1
+            *DO, k, 1, 6
+            
+                xCoord(k) = nx(ELnodeNumbers(k))
+                yCoord(k) = ny(ELnodeNumbers(k))
+                zCoord(k) = nz(ELnodeNumbers(k))
+            
+                *IF, ELnodeNumbers(k), eq, nodeNum(i,1), then
+                    currN = k
+                *ENDIF
+                
+            *ENDDO
+            
+            ! ELEMENT COORDINATES OF NODES
+            xiV(1)  = 1, 0, 0, 0.5, 0, 0.5
+            etaV(1) = 0, 1, 0, 0.5, 0.5, 0
+            
+            ! LOCAL COORDINATE OF CURRENT NODE
+            xi  = xiV(currN)
+            eta = etaV(currN)
+            
+            ! LOCAL DERIVATIVES OF SHAPE FUNCTIONS
+            dNdxi(1)  = -1+4*xi, 0,  -3+4*xi+4*eta, 4*eta, 4*(-eta), 4*(1-2*xi-eta)
+            dNdeta(1) = 0, -1+4*eta, -3+4*xi+4*eta, 4*xi,  4*(1-2*eta-xi),  4*(-xi)
+            
+            ! LOCAL DERIVATIVE OF POSITON VECTOR (TANGENTPLANE TO NODE)
+            dx1(1) = 0, 0, 0
+            dx2(1) = 0, 0, 0
+            *DO, k, 1, 6
+                dx1(1) = dx1(1) + dNdxi(k)*xCoord(k)
+                dx1(2) = dx1(2) + dNdxi(k)*yCoord(k)
+                dx1(3) = dx1(3) + dNdxi(k)*zCoord(k)
+                
+                dx2(1) = dx2(1) + dNdeta(k)*xCoord(k)
+                dx2(2) = dx2(2) + dNdeta(k)*yCoord(k)
+                dx2(3) = dx2(3) + dNdeta(k)*zCoord(k)
+            *ENDDO
+        *ENDIF
+        
+        ! QUADRILATERAL ELEMENT
+        *IF, cornerN(3), ne, cornerN(4), then
+        
+            ! MIDSIDE NODES
+            *DO, k, 1, 4
+                *GET, midN(k), element, elID, node, k+4
+            *ENDDO
+            
+            ! ELEMENT NODES
+            ELnodeNumbers(1) = cornerN(1), cornerN(2), cornerN(3), cornerN(4), midN(1), midN(2), midN(3), midN(4)
+            
+            ! NODAL COORDINATES AND CURRENT NODE
+            currN = 1
+            *DO, k, 1, 8
+            
+                xCoord(k) = nx(ELnodeNumbers(k))
+                yCoord(k) = ny(ELnodeNumbers(k))
+                zCoord(k) = nz(ELnodeNumbers(k))
+            
+                *IF, ELnodeNumbers(k), eq, nodeNum(i,1), then
+                    currN = k
+                *ENDIF
+                
+            *ENDDO
+            
+            ! ELEMENT COORDINATES OF NODES
+            xiV(1)  = 1, -1, -1, 1, 0, -1, 0, 1
+            etaV(1) = 1, 1, -1, -1, 1, 0, -1, 0
+            
+            ! LOCAL COORDINATE OF CURRENT NODE
+            xi  = xiV(currN)
+            eta = etaV(currN)
+            
+            ! LOCAL DERIVATIVES OF SHAPE FUNCTIONS
+            dNdxi(1) =  1/4*(1+eta)*(xi+eta-1) + 1/4*(1+xi)*(1+eta)
+            dNdxi(2) = -1/4*(1+eta)*(-xi+eta-1) - 1/4*(1-xi)*(1+eta)
+            dNdxi(3) = -1/4*(1-eta)*(-xi-eta-1) - 1/4*(1-xi)*(1-eta)
+            dNdxi(4) =  1/4*(1-eta)*(xi-eta-1) + 1/4*(1+xi)*(1-eta)
+            dNdxi(5) =  1/2*(-2*xi)*(1+eta)
+            dNdxi(6) = -1/2*(1-eta**2)
+            dNdxi(7) =  1/2*(-2*xi)*(1-eta)
+            dNdxi(8) =  1/2*(1-eta**2)
+            
+            dNdeta(1) =  1/4*(1+xi)*(xi+eta-1) + 1/4*(1+xi)*(1+eta)
+            dNdeta(2) =  1/4*(1-xi)*(-xi+eta-1) + 1/4*(1-xi)*(1+eta)
+            dNdeta(3) = -1/4*(1-xi)*(-xi-eta-1) - 1/4*(1-xi)*(1-eta)
+            dNdeta(4) = -1/4*(1+xi)*(xi-eta-1) - 1/4*(1+xi)*(1-eta)
+            dNdeta(5) =  1/2*(1-xi**2)
+            dNdeta(6) =  1/2*(1-xi)*(-2*eta)
+            dNdeta(7) = -1/2*(1-xi**2)
+            dNdeta(8) =  1/2*(1+xi)*(-2*eta)
+            
+            ! LOCAL DERIVATIVE OF POSITON VECTOR (TANGENTPLANE TO NODE)
+            dx1(1) = 0, 0, 0
+            dx2(1) = 0, 0, 0
+            *DO, k, 1, 8
+                dx1(1) = dx1(1) + dNdxi(k)*xCoord(k)
+                dx1(2) = dx1(2) + dNdxi(k)*yCoord(k)
+                dx1(3) = dx1(3) + dNdxi(k)*zCoord(k)
+                
+                dx2(1) = dx2(1) + dNdeta(k)*xCoord(k)
+                dx2(2) = dx2(2) + dNdeta(k)*yCoord(k)
+                dx2(3) = dx2(3) + dNdeta(k)*zCoord(k)
+            *ENDDO
+        *ENDIF
+        
+        ! CROSS PRODUCT FOR NORMAL VECTOR
+        normVE(1) = -dx2(2)*dx1(3) + dx2(3)*dx1(2)
+        normVE(2) = -dx1(1)*dx2(3) + dx2(1)*dx1(3)
+        normVE(3) = -dx2(1)*dx1(2) + dx2(2)*dx1(1)
+        
+        ! SCALE NORMAL VECTOR
+        scal = sqrt(normVE(1)**2 + normVE(2)**2 + normVE(3)**2)
+        *DO, k, 1, 3
+            normVE(k) = normVE(k)/scal
+        *ENDDO
+        
+        ! ADD ELEMENT NORMAL VECTOR TO NORMAL VECTOR OF MEASUREMENT POINT
+        *DO, k, 1, 3
+            normV(k) = normV(k) + normVE(k)
+        *ENDDO
+        
+        ! NEXT ELEMENT NUMBER
+        *GET, elID, element, elID, nxth
+
+    *ENDDO
+    
+    ! SCALE NORMAL VECTOR
+    scal = -sqrt(normV(1)**2 + normV(2)**2 + normV(3)**2)
+    *DO, j, 1, 3
+        normV(j) = normV(j)/scal
+    *ENDDO
+    
+    !  WRITE NORMAL VECTOR TO MATRIX
+    *DO, j, 1, 3
+        normVM(i,j) = normV(j)
+    *ENDDO
+
+*ENDDO
+
+! WRITE NORMALS TO FILE
+*CFOPEN, normals, dat
+*VWRITE, normVM(1,1), normVM(1,2), normVM(1,3)
+(3F20.5)
+*CFCLOSE
+
+! copy file to user_files
+*DIM, fname, string, 128
+fname(1) = strcat(_WB_USERFILES_DIR(1),'normals')
+/copy, normals, dat, , fname(1), dat

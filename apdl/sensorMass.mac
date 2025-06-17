@@ -1,0 +1,49 @@
+! *****************************************************************************
+! Add a point mass to the closest node of points, which coordinates are listed 
+! in the text file 'coordsMP.dat'. The mass is defined in 'massSens' in tons!.
+! Coordinates are defined in the coordinate system 1000.
+! 
+! (c)by FJ
+! *****************************************************************************
+
+! define point mass (in tons!)
+massSens = 8.4E-6
+
+/PREP7
+
+! READ COORDINATES OF MEASUREMENT POINTS
+! number of measurement points
+/INQUIRE, numMP, lines, coordsMP, dat
+
+! read coordinates of measurement points
+*DIM, nodeCoord, array, numMP, 3
+
+! read nodes, read row-wise jik:
+*VREAD, nodeCoord(1,1), coordsMP, dat, , jik, 3, numMP
+(3F20.4)
+
+! Elementtype Masse 21
+ET, 101, mass21, , , 2
+
+! Real Constant
+R, 101, massSens
+
+! for subsequent element
+TYPE, 101
+REAL, 101
+
+! select coordinate frame:
+CSYS, 1000 
+
+! loop over all measurement points
+*DO, i, 1, numMP
+
+    ! node numbers of measurement points
+    nodeNum = node(nodeCoord(i,1),nodeCoord(i,2),nodeCoord(i,3))
+    
+    ! define mass point
+    E, nodeNum
+
+*ENDDO
+
+/SOLU
